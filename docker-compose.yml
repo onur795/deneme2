@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  pluto-sensor:
+    build: .
+    image: pluto-sensor:latest
+    container_name: pluto-sensor
+    restart: unless-stopped
+
+    # USB cihaz erişimi için privileged mod
+    privileged: true
+
+    # USB cihazları paylaş
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+
+    # Portlar
+    ports:
+      - "5000:5000"
+
+    # Çevre değişkenleri
+    environment:
+      - TZ=Europe/Istanbul
+      - PYTHONUNBUFFERED=1
+      - PLUTO_IP=192.168.2.1
+
+    # Volume'lar (veri kalıcılığı)
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+      - /dev:/dev
+
+    # Network modu
+    network_mode: bridge
+
+    # Sağlık kontrolü
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Kaynak limitleri
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Log yapılandırması
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Volume tanımları
+volumes:
+  data:
+    driver: local
+  logs:
+    driver: local
+  config:
+    driver: local
+
+# Network tanımları
+networks:
+  default:
+    name: pluto-sensor-network
+    driver: bridge
